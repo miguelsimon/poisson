@@ -1,0 +1,8 @@
+scipy
+jupyter
+matplotlib
+autograd
+mypy
+flake8
+isort
+black

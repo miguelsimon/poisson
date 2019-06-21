@@ -1,0 +1,5 @@
+__pycache__
+env
+env_ok
+.ipynb_checkpoints
+.mypy_cache
