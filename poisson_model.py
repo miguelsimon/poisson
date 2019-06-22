@@ -69,12 +69,8 @@ def fit(x_dim, y_dim, samples):
 
     hessp = hvp(objective)
 
-    bounds = scipy.optimize.Bounds(
-        lb=np.zeros(theta0.shape), ub=np.inf * np.ones(theta0.shape)
-    )
-
     sol = scipy.optimize.minimize(
-        objective, theta0, method="trust-constr", jac=jac, hessp=hessp, bounds=bounds
+        objective, theta0, method="trust-constr", jac=jac, hessp=hessp
     )
 
     return sol["x"].reshape(theta_shape), sol
