@@ -2,7 +2,7 @@ py_files := *.py
 
 env_ok: requirements.txt
 	rm -rf env env_ok
-	python3.6 -m venv env
+	python3 -m venv env
 	env/bin/pip install -r requirements.txt
 	touch env_ok
 
