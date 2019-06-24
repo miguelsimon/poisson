@@ -3,8 +3,8 @@ from typing import Tuple
 
 import autograd.numpy as np
 import scipy.optimize
-from autograd import grad
-from autograd import hessian_vector_product as hvp
+
+import autograd_objective
 
 
 class Problem:
@@ -43,41 +43,18 @@ class Sim:
         return x, y
 
 
-def fit(x_dim, y_dim, samples):
-    theta_shape = (y_dim, x_dim + 1)
-    theta0 = np.zeros(theta_shape)
-    theta0[:, -1] = 1  # bias
-    theta0 = theta0.flatten()
-
-    lxs, lys = [], []
-    for x, y in samples:
-        lxs.append(x)
-        lys.append(y)
-
-    xs = np.array(lxs).transpose()
-    ys = np.array(lys).transpose()
-
-    def objective(theta_flat):
-        theta = np.reshape(theta_flat, theta_shape)
-
-        # just throw np.newaxis in there until it works
-        prods = np.dot(theta[:, :-1], xs) + theta[:, -1][:, np.newaxis]
-        losses = ys * np.log(prods) - prods
-        return -np.sum(losses)
-
-    jac = grad(objective)
-
-    hessp = hvp(objective)
-
-    bounds = scipy.optimize.Bounds(
-        lb=np.zeros(theta0.shape), ub=np.inf * np.ones(theta0.shape)
-    )
+def fit(obj):
 
     sol = scipy.optimize.minimize(
-        objective, theta0, method="trust-constr", jac=jac, hessp=hessp, bounds=bounds
+        obj.objective,
+        obj.get_x0(),
+        method="trust-constr",
+        jac=obj.jac,
+        hessp=obj.hessp,
+        bounds=obj.bounds,
     )
 
-    return sol["x"].reshape(theta_shape), sol
+    return obj.reshape(sol["x"]), sol
 
 
 class Test(unittest.TestCase):
@@ -109,7 +86,8 @@ class FitTest(unittest.TestCase):
         print()
         for num in [10, 90, 900]:
             samples.extend([sim.sample() for _ in range(num)])
-            theta_calculated, _sol = fit(sim.x_dim, sim.y_dim, samples)
+            obj = autograd_objective.Objective(sim.x_dim, sim.y_dim, samples)
+            theta_calculated, _sol = fit(obj)
             frobenius = np.linalg.norm(theta - theta_calculated, ord="fro")
             norms.append(frobenius)
             print("samples: {0} frobenius: {1}".format(len(samples), frobenius))
