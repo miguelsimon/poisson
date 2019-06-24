@@ -86,7 +86,7 @@ class FitTest(unittest.TestCase):
         print()
         for num in [10, 90, 900]:
             samples.extend([sim.sample() for _ in range(num)])
-            obj = autograd_objective.Objective(sim.x_dim, sim.y_dim, samples)
+            obj = autograd_objective.ThetaObjective(sim.x_dim, sim.y_dim, samples)
             theta_calculated, _sol = fit(obj)
             frobenius = np.linalg.norm(theta - theta_calculated, ord="fro")
             norms.append(frobenius)
