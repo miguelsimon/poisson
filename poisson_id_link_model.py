@@ -1,5 +1,5 @@
 import unittest
-from typing import Tuple
+from typing import List, Tuple
 
 import autograd.numpy as np
 import scipy.optimize
@@ -78,21 +78,36 @@ class Test(unittest.TestCase):
         print(Ey)
 
 
-class FitTest(unittest.TestCase):
-    def fit(self, theta):
-        sim = Sim(theta)
-        norms = []
-        samples = []
-        print()
-        for num in [10, 90, 900]:
+class SimTest:
+    def __init__(self, theta: np.array, sample_nums: List[int]):
+        self.theta = theta
+        self.sample_nums = sample_nums
+
+    def test(self):
+        thetas: List[np.ndarray] = []
+        norms: List[float] = []
+        samples: List[np.ndarray] = []
+
+        sim = Sim(self.theta)
+
+        for num in self.sample_nums:
             samples.extend([sim.sample() for _ in range(num)])
             obj = autograd_objective.ThetaObjective(sim.x_dim, sim.y_dim, samples)
             theta_calculated, _sol = fit(obj)
-            frobenius = np.linalg.norm(theta - theta_calculated, ord="fro")
+            thetas.append(theta_calculated)
+            frobenius = np.linalg.norm(self.theta - theta_calculated, ord="fro")
             norms.append(frobenius)
             print("samples: {0} frobenius: {1}".format(len(samples), frobenius))
 
-        self.assertTrue(norms[-1] < norms[0])
+        self.thetas = thetas
+        self.norms = norms
+
+
+class FitTest(unittest.TestCase):
+    def fit(self, theta):
+        sim_test = SimTest(theta, [10, 90, 900])
+        sim_test.test()
+        self.assertTrue(sim_test.norms[-1] < sim_test.norms[0])
 
     def test_fit1(self):
         self.fit(np.array([[1, 5]]))
