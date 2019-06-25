@@ -98,8 +98,40 @@ class XObjEstimator(Estimator):
 
     def predict_x(self, y):
         obj = autograd_objective.XObjective(self.theta, y)
-        x_pred, _sol = fit(obj)
-        return x_pred
+
+        sol = scipy.optimize.minimize(
+            obj.objective, obj.get_x0(), method="SLSQP", jac=obj.jac, bounds=obj.bounds
+        )
+        return sol["x"]
+
+
+class MAPEstimator(Estimator):
+    def __init__(self, name, theta):
+        self.name = name
+        self.theta = theta
+        self.x_dim = theta.shape[1] - 1
+
+    def get_name(self):
+        return self.name
+
+    def loss(self, x, y):
+        prod = np.dot(self.theta[:, :-1], x) + self.theta[:, -1]
+        loss = y * np.log(prod) - prod
+        return -np.sum(loss)
+
+    def predict_x(self, y):
+        xs = [np.zeros(self.x_dim)]
+        for i in range(self.x_dim):
+            x = np.zeros(self.x_dim)
+            x[i] = 1.0
+            xs.append(x)
+
+        losses = []
+        for x in xs:
+            losses.append(self.loss(x, y))
+
+        i = np.argmin(losses)
+        return xs[i]
 
 
 class SimTest:
@@ -113,6 +145,7 @@ class SimTest:
         estimators = [
             evaluate_errors.NullaryEstimator(sim),
             XObjEstimator("theta", theta),
+            MAPEstimator("MAP", theta),
         ]
 
         self.evaluation = evaluate_errors.Evaluate(estimators, test_xs, test_ys)
@@ -129,7 +162,6 @@ class EvalTest(unittest.TestCase):
         )
 
         SimTest(theta)
-        print("hi")
 
 
 class FitTest(unittest.TestCase):
