@@ -5,19 +5,16 @@ from autograd import hessian_vector_product as hvp
 
 
 class ThetaObjective:
-    def __init__(self, x_dim, y_dim, samples):
+    def __init__(self, xs, ys):
+        x_dim = xs.shape[1]
+        y_dim = ys.shape[1]
         theta_shape = (y_dim, x_dim + 1)
         theta0 = np.zeros(theta_shape)
         theta0[:, -1] = 1  # bias
         theta0 = theta0.flatten()
 
-        lxs, lys = [], []
-        for x, y in samples:
-            lxs.append(x)
-            lys.append(y)
-
-        xs = np.array(lxs).transpose()
-        ys = np.array(lys).transpose()
+        xs = xs.transpose()
+        ys = ys.transpose()
 
         def objective(theta_flat):
             theta = np.reshape(theta_flat, theta_shape)
@@ -62,6 +59,8 @@ class XObjective:
             return np.zeros(x_dim)
 
         self.get_x0 = get_x0
+
+        self.reshape = lambda x: x
 
         self.objective = objective
 

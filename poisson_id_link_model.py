@@ -1,10 +1,12 @@
 import unittest
-from typing import List, Tuple
+from typing import Tuple
 
 import autograd.numpy as np
 import scipy.optimize
 
 import autograd_objective
+import evaluate_errors
+from evaluate_errors import Estimator
 
 
 class Problem:
@@ -42,9 +44,17 @@ class Sim:
         y = np.random.poisson(Ey)
         return x, y
 
+    def sample_n(self, n: int) -> Tuple[np.ndarray, np.ndarray]:
+        xs, ys = [], []
+        for _ in range(n):
+            x, y = self.sample()
+            xs.append(x)
+            ys.append(y)
+
+        return np.array(xs), np.array(ys)
+
 
 def fit(obj):
-
     sol = scipy.optimize.minimize(
         obj.objective,
         obj.get_x0(),
@@ -78,45 +88,69 @@ class Test(unittest.TestCase):
         print(Ey)
 
 
-class SimTest:
-    def __init__(self, theta: np.array, sample_nums: List[int]):
+class XObjEstimator(Estimator):
+    def __init__(self, name, theta):
+        self.name = name
         self.theta = theta
-        self.sample_nums = sample_nums
 
-    def test(self):
-        thetas: List[np.ndarray] = []
-        norms: List[float] = []
-        samples: List[np.ndarray] = []
+    def get_name(self):
+        return self.name
+
+    def predict_x(self, y):
+        obj = autograd_objective.XObjective(self.theta, y)
+        x_pred, _sol = fit(obj)
+        return x_pred
+
+
+class SimTest:
+    def __init__(self, theta: np.array):
+        self.theta = theta
 
         sim = Sim(self.theta)
 
-        for num in self.sample_nums:
-            samples.extend([sim.sample() for _ in range(num)])
-            obj = autograd_objective.ThetaObjective(sim.x_dim, sim.y_dim, samples)
-            theta_calculated, _sol = fit(obj)
-            thetas.append(theta_calculated)
-            frobenius = np.linalg.norm(self.theta - theta_calculated, ord="fro")
-            norms.append(frobenius)
-            print("samples: {0} frobenius: {1}".format(len(samples), frobenius))
+        test_xs, test_ys = sim.sample_n(100)
 
-        self.thetas = thetas
-        self.norms = norms
+        estimators = [
+            evaluate_errors.NullaryEstimator(sim),
+            XObjEstimator("theta", theta),
+        ]
+
+        self.evaluation = evaluate_errors.Evaluate(estimators, test_xs, test_ys)
+
+
+class EvalTest(unittest.TestCase):
+    def test(self):
+        theta = 100 * np.array(
+            [
+                [1.0, 0.5, 0.1, 0.1, 0.01],
+                [0.5, 0.1, 1.0, 0.1, 0.01],
+                [0.1, 1.0, 0.5, 0.1, 0.3],  # this one's dcr is high
+            ]
+        )
+
+        SimTest(theta)
+        print("hi")
 
 
 class FitTest(unittest.TestCase):
     def fit(self, theta):
-        sim_test = SimTest(theta, [10, 90, 900])
-        sim_test.test()
-        self.assertTrue(sim_test.norms[-1] < sim_test.norms[0])
+        sim = Sim(theta)
+
+        train_xs, train_ys = sim.sample_n(100)
+
+        obj = autograd_objective.ThetaObjective(train_xs, train_ys)
+        theta_calculated, _sol = fit(obj)
+        frobenius = np.linalg.norm(theta - theta_calculated, ord="fro")
+        print("frobenius {0}".format(frobenius))
 
     def test_fit1(self):
-        self.fit(np.array([[1, 5]]))
+        self.fit(np.array([[50, 5]]))
 
     def test_fit2(self):
-        self.fit(np.array([[1, 1]]))
+        self.fit(np.array([[100, 1]]))
 
     def test_fit3(self):
-        theta = np.array(
+        theta = 100 * np.array(
             [
                 [1.0, 0.5, 0.1, 0.1, 0.01],
                 [0.5, 0.1, 1.0, 0.1, 0.01],
