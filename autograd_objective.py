@@ -10,7 +10,7 @@ class ThetaObjective:
         y_dim = ys.shape[1]
         theta_shape = (y_dim, x_dim + 1)
         theta0 = np.zeros(theta_shape)
-        theta0[:, -1] = 1  # bias
+        theta0[:, -1] = 0.1  # bias
         theta0 = theta0.flatten()
 
         xs = xs.transpose()
@@ -41,7 +41,7 @@ class ThetaObjective:
         self.hessp = hvp(objective)
 
         self.bounds = scipy.optimize.Bounds(
-            lb=np.zeros(theta0.shape), ub=np.inf * np.ones(theta0.shape)
+            lb=0.00001 * np.ones(theta0.shape), ub=np.inf * np.ones(theta0.shape)
         )
 
 

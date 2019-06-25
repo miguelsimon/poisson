@@ -1,7 +1,6 @@
 from typing import List
 
 import autograd.numpy as np
-
 from matplotlib import pyplot as plt
 
 
@@ -51,3 +50,4 @@ class Evaluate:
             labels.append(ev.estimator.get_name())
 
         plt.boxplot(data, labels=labels)
+        plt.violinplot(data)
