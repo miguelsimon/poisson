@@ -10,8 +10,7 @@ Primary objectives are:
 An illustration of the approach and a toy solver for the first part of the problem (estimating the model) is found in the inaptly named [poisson_l1.ipynb](poisson_l1.ipynb) notebook, if the github .ipynb renderer feels like working today (it rarely does).
 
 
-* [poisson_id_link_model.py](poisson_id_link_model.py) implements a better model for our situation (I think): sensor responses should be linear in the events. This means the Poisson means must respond linearly, and we need a nonnegativity constraint on the theta matrix. We'll need to be careful with the stability around 0 in logs in this one.
-* [poisson_log_link_model.py](poisson_log_link_model.py) DEPRECATED, implements what seems to be known as "poisson regression", is not physically plausible as count rates at the detectors should be linear in the events (ie the same event happening 2 times should result in 2x the particles at the detectors)
+* [poisson_id_link_model.py](poisson_id_link_model.py) implements a better model for our situation (I think): sensor responses should be linear in the events. This means the Poisson means must respond linearly, and we need a nonnegativity constraint on the theta matrix. We'll need to be careful with the stability around 0 in logs.
 
 An example of the l1 penalty trick we discussed, described in formula (6) in [Koh, K., Kim, S. J., & Boyd, S. (2007). An interior-point method for large-scale l1-regularized logistic regression. Journal of Machine learning research, 8(Jul), 1519-1555.](http://jmlr.csail.mit.edu/papers/volume8/koh07a/koh07a.pdf) is in [l1_trick.py](l1_trick.py).
 

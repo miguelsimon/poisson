@@ -3,8 +3,10 @@ from typing import Tuple
 
 import autograd.numpy as np
 import scipy.optimize
-from autograd import grad
-from autograd import hessian_vector_product as hvp
+
+import autograd_objective
+import evaluate_errors
+from evaluate_errors import Estimator
 
 
 class Problem:
@@ -42,42 +44,27 @@ class Sim:
         y = np.random.poisson(Ey)
         return x, y
 
+    def sample_n(self, n: int) -> Tuple[np.ndarray, np.ndarray]:
+        xs, ys = [], []
+        for _ in range(n):
+            x, y = self.sample()
+            xs.append(x)
+            ys.append(y)
 
-def fit(x_dim, y_dim, samples):
-    theta_shape = (y_dim, x_dim + 1)
-    theta0 = np.zeros(theta_shape)
-    theta0[:, -1] = 1  # bias
-    theta0 = theta0.flatten()
+        return np.array(xs), np.array(ys)
 
-    lxs, lys = [], []
-    for x, y in samples:
-        lxs.append(x)
-        lys.append(y)
 
-    xs = np.array(lxs).transpose()
-    ys = np.array(lys).transpose()
-
-    def objective(theta_flat):
-        theta = np.reshape(theta_flat, theta_shape)
-
-        # just throw np.newaxis in there until it works
-        prods = np.dot(theta[:, :-1], xs) + theta[:, -1][:, np.newaxis]
-        losses = ys * np.log(prods) - prods
-        return -np.sum(losses)
-
-    jac = grad(objective)
-
-    hessp = hvp(objective)
-
-    bounds = scipy.optimize.Bounds(
-        lb=np.zeros(theta0.shape), ub=np.inf * np.ones(theta0.shape)
-    )
-
+def fit(obj):
     sol = scipy.optimize.minimize(
-        objective, theta0, method="trust-constr", jac=jac, hessp=hessp, bounds=bounds
+        obj.objective,
+        obj.get_x0(),
+        method="trust-constr",
+        jac=obj.jac,
+        hessp=obj.hessp,
+        bounds=obj.bounds,
     )
 
-    return sol["x"].reshape(theta_shape), sol
+    return obj.reshape(sol["x"]), sol
 
 
 class Test(unittest.TestCase):
@@ -101,29 +88,69 @@ class Test(unittest.TestCase):
         print(Ey)
 
 
+class XObjEstimator(Estimator):
+    def __init__(self, name, theta):
+        self.name = name
+        self.theta = theta
+
+    def get_name(self):
+        return self.name
+
+    def predict_x(self, y):
+        obj = autograd_objective.XObjective(self.theta, y)
+        x_pred, _sol = fit(obj)
+        return x_pred
+
+
+class SimTest:
+    def __init__(self, theta: np.array):
+        self.theta = theta
+
+        sim = Sim(self.theta)
+
+        test_xs, test_ys = sim.sample_n(100)
+
+        estimators = [
+            evaluate_errors.NullaryEstimator(sim),
+            XObjEstimator("theta", theta),
+        ]
+
+        self.evaluation = evaluate_errors.Evaluate(estimators, test_xs, test_ys)
+
+
+class EvalTest(unittest.TestCase):
+    def test(self):
+        theta = 100 * np.array(
+            [
+                [1.0, 0.5, 0.1, 0.1, 0.01],
+                [0.5, 0.1, 1.0, 0.1, 0.01],
+                [0.1, 1.0, 0.5, 0.1, 0.3],  # this one's dcr is high
+            ]
+        )
+
+        SimTest(theta)
+        print("hi")
+
+
 class FitTest(unittest.TestCase):
     def fit(self, theta):
         sim = Sim(theta)
-        norms = []
-        samples = []
-        print()
-        for num in [10, 90, 900]:
-            samples.extend([sim.sample() for _ in range(num)])
-            theta_calculated, _sol = fit(sim.x_dim, sim.y_dim, samples)
-            frobenius = np.linalg.norm(theta - theta_calculated, ord="fro")
-            norms.append(frobenius)
-            print("samples: {0} frobenius: {1}".format(len(samples), frobenius))
 
-        self.assertTrue(norms[-1] < norms[0])
+        train_xs, train_ys = sim.sample_n(100)
+
+        obj = autograd_objective.ThetaObjective(train_xs, train_ys)
+        theta_calculated, _sol = fit(obj)
+        frobenius = np.linalg.norm(theta - theta_calculated, ord="fro")
+        print("frobenius {0}".format(frobenius))
 
     def test_fit1(self):
-        self.fit(np.array([[1, 5]]))
+        self.fit(np.array([[50, 5]]))
 
     def test_fit2(self):
-        self.fit(np.array([[1, 1]]))
+        self.fit(np.array([[100, 1]]))
 
     def test_fit3(self):
-        theta = np.array(
+        theta = 100 * np.array(
             [
                 [1.0, 0.5, 0.1, 0.1, 0.01],
                 [0.5, 0.1, 1.0, 0.1, 0.01],
