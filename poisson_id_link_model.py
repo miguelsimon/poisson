@@ -31,15 +31,18 @@ class Problem:
 
 
 class Sim:
-    def __init__(self, theta):
+    def __init__(self, theta, mag=1.0):
         self.x_dim = theta.shape[1] - 1
         self.y_dim = theta.shape[0]
         self.obj = Problem(self.x_dim, self.y_dim)
         self.theta = theta
+        self.mag = mag
 
     def sample(self):
         evt_count = np.random.randint(0, 2)
-        x = np.random.multinomial(evt_count, np.ones(self.x_dim) / self.x_dim)
+        x = self.mag * np.random.multinomial(
+            evt_count, np.ones(self.x_dim) / self.x_dim
+        )
         Ey = self.obj.Ey_given_x(self.theta, x)
         y = np.random.poisson(Ey)
         return x, y
@@ -106,9 +109,10 @@ class XObjEstimator(Estimator):
 
 
 class MAPEstimator(Estimator):
-    def __init__(self, name, theta):
+    def __init__(self, name, theta, mag=1.0):
         self.name = name
         self.theta = theta
+        self.mag = mag
         self.x_dim = theta.shape[1] - 1
 
     def get_name(self):
@@ -123,7 +127,7 @@ class MAPEstimator(Estimator):
         xs = [np.zeros(self.x_dim)]
         for i in range(self.x_dim):
             x = np.zeros(self.x_dim)
-            x[i] = 1.0
+            x[i] = self.mag
             xs.append(x)
 
         losses = []
