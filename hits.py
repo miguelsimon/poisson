@@ -10,7 +10,7 @@ import emd
 
 def hits_to_density(hits: DataFrame) -> Tuple[ndarray, ndarray]:
     """
-    Extracts a densty as weights and coordinates from a hits DataFrame
+    Extracts a density as weights and coordinates from a hits DataFrame
 
     Parameters
     ----------
