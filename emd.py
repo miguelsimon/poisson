@@ -23,7 +23,7 @@ def emd(x, y, xy_dist):
     -------
 
     float
-        eath movers' distance
+        earth movers' distance
     ndarray
         moves required to move x onto y
 
@@ -84,7 +84,7 @@ def sparse_emd(x, x_points, y, y_points, p=2):
     -------
 
     float
-        eath movers' distance
+        earth movers' distance
     ndarray
         moves required to move x onto y
 
