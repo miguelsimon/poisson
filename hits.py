@@ -5,6 +5,8 @@ import numpy as np
 from numpy import ndarray
 from pandas import DataFrame
 
+import emd
+
 
 def hits_to_density(hits: DataFrame) -> Tuple[ndarray, ndarray]:
     """
@@ -30,7 +32,7 @@ def hits_to_density(hits: DataFrame) -> Tuple[ndarray, ndarray]:
 
 class Test(unittest.TestCase):
     def test(self):
-        hits = DataFrame(
+        hits1 = DataFrame(
             {
                 "event_id": [10020, 10020],
                 "x": [-89.604973, -77.158882],
@@ -41,4 +43,25 @@ class Test(unittest.TestCase):
             }
         )
 
-        print(hits_to_density(hits))
+        hits2 = DataFrame(
+            {
+                "event_id": [10020],
+                "x": [-89.604973],
+                "y": [-140.010086],
+                "z": [-36.768826],
+                "time": [0.587584],
+                "energy": [0.000068 + 0.005417],
+            }
+        )
+
+        weights1, points1 = hits_to_density(hits1)
+
+        dist, _ = emd.sparse_emd(weights1, points1, weights1, points1)
+
+        self.assertTrue(np.allclose(dist, 0))
+
+        weights2, points2 = hits_to_density(hits2)
+
+        dist, _ = emd.sparse_emd(weights1, points1, weights2, points2)
+
+        self.assertFalse(np.allclose(dist, 0))
