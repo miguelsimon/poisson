@@ -8,7 +8,7 @@ import pandas
 from pandas import DataFrame
 
 
-class MC(NamedTuple):
+class Stats(NamedTuple):
     hits: DataFrame
     waveforms: DataFrame
 
@@ -58,10 +58,11 @@ class MC(NamedTuple):
 
 
 def load_mc(filename: str):
-    f = h5py.File(filename, "r")
-    return MC(
-        hits=DataFrame(f["MC"]["hits"][:]), waveforms=DataFrame(f["MC"]["waveforms"][:])
-    )
+    with h5py.File(filename, "r") as f:
+        return Stats(
+            hits=DataFrame(f["MC"]["hits"][:]),
+            waveforms=DataFrame(f["MC"]["waveforms"][:]),
+        )
 
 
 class Test(unittest.TestCase):
